@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 from email.mime.text import MIMEText
 import google.auth
-from google.auth.transport.requests import Request
+from google.auth.transport.requests import Request as GoogleRequest
 from google.oauth2.credentials import Credentials
 from google.api_core.exceptions import GoogleAPIError
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -35,7 +35,7 @@ def get_gmail_service():
         client_secret=client_secret,
         scopes=SCOPES
     )
-    creds.refresh(Request())
+    creds.refresh(GoogleRequest())
     return build('gmail', 'v1', credentials=creds)
 
 

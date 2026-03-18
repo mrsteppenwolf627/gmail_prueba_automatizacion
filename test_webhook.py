@@ -14,7 +14,7 @@ import base64
 import requests
 
 # Local webhook URL
-WEBHOOK_URL = "http://localhost:8000/api/webhooks/gmail"
+WEBHOOK_URL = "https://gmail-auto-reply-webhook.vercel.app/api/webhooks/gmail"
 
 
 def test_webhook():

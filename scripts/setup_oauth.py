@@ -29,10 +29,10 @@ def setup_oauth():
     flow = InstalledAppFlow.from_client_secrets_file(
         CREDENTIALS_FILE,
         scopes=SCOPES,
-        redirect_uri='http://localhost:8080/'
+        redirect_uri='http://localhost:8081/'
     )
 
-    creds = flow.run_local_server(port=8080, open_browser=True)
+    creds = flow.run_local_server(port=8081, open_browser=True)
 
     print("\n" + "=" * 60)
     print("SUCCESS: OAuth setup complete!")

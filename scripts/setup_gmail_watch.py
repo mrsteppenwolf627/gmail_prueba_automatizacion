@@ -17,7 +17,7 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 SCOPES = ['https://www.googleapis.com/auth/gmail.modify']
 
@@ -54,6 +54,9 @@ def setup_gmail_watch(webhook_url):
         raise ValueError("Missing GOOGLE_PROJECT_ID in .env")
 
     topic_name = f'projects/{project_id}/topics/gmail-notifications'
+    print(f"DEBUG: Using project_id: {project_id}")
+    print(f"DEBUG: Using topic_name: {topic_name}")
+    print(f"DEBUG: Using client_id: {os.getenv('GOOGLE_CLIENT_ID')}")
 
     try:
         result = gmail.users().watch(
