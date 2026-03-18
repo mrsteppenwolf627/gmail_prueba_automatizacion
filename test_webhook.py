@@ -59,7 +59,7 @@ def test_webhook():
 
 def test_health():
     """Test the health endpoint."""
-    health_url = "http://localhost:8000/api/health"
+    health_url = "https://gmail-auto-reply-webhook.vercel.app/api/health"
 
     print(f"Testing health endpoint at {health_url}")
 

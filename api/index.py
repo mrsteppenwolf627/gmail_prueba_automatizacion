@@ -59,45 +59,62 @@ async def gmail_webhook(request: Request):
     """Receive Gmail Pub/Sub notification and send auto-reply."""
     try:
         body = await request.json()
+        print(f"RAW BODY RECEIVED: {json.dumps(body)}")
 
-        # Decode Pub/Sub message
         if 'message' not in body or 'data' not in body['message']:
+            print("ERROR: Invalid payload structure")
             return JSONResponse({"error": "Invalid payload"}, status_code=400)
 
         message_data = base64.b64decode(body['message']['data']).decode('utf-8')
         payload = json.loads(message_data)
         history_id = int(payload.get('historyId'))
 
-        log_event(f"Received notification with historyId: {history_id}")
+        print(f"--- START PROCESSING historyId: {history_id} ---")
 
         gmail = get_gmail_service()
         user_id = os.getenv('GMAIL_USER_ID', 'me')
 
         # Get new messages from history
+        print(f"Fetching history for user {user_id} starting from {history_id - 1}")
         history = gmail.users().history().list(
             userId=user_id,
             startHistoryId=max(0, history_id - 1)
         ).execute()
 
+        print(f"FULL HISTORY RESPONSE: {json.dumps(history)}")
+
         messages = []
-        for h in history.get('history', []):
-            if 'messagesAdded' in h:
-                messages.extend([m['message']['id'] for m in h['messagesAdded']])
+        if 'history' in history:
+            for h in history['history']:
+                if 'messagesAdded' in h:
+                    for m_added in h['messagesAdded']:
+                        msg_id = m_added['message']['id']
+                        messages.append(msg_id)
+        
+        # Fallback: If history doesn't show added messages, get the latest from INBOX
+        if not messages:
+            print("History was empty, falling back to latest message in INBOX...")
+            list_res = gmail.users().messages().list(userId=user_id, q="label:INBOX", maxResults=1).execute()
+            if 'messages' in list_res:
+                messages = [list_res['messages'][0]['id']]
 
         if not messages:
-            log_event("No new messages found")
+            print("CRITICAL: No messages found even in fallback.")
             return JSONResponse({"status": "no_messages"}, status_code=200)
 
-        # Process first new message
         msg_id = messages[0]
-        message = gmail.users().messages().get(
-            userId=user_id,
-            id=msg_id,
-            format='full'
-        ).execute()
-
+        print(f"Processing message ID: {msg_id}")
+        message = gmail.users().messages().get(userId=user_id, id=msg_id, format='full').execute()
+        
+        # Get headers for reply
         headers = message['payload']['headers']
-        from_addr = next((h['value'] for h in headers if h['name'] == 'From'), None)
+        from_addr = next((h['value'] for h in headers if h['name'] == 'From'), "")
+        
+        # CHECK IF ALREADY REPLIED OR IF IT IS FROM US
+        if user_id in from_addr or "me" in from_addr:
+            print(f"Skipping self-sent message from: {from_addr}")
+            return JSONResponse({"status": "skipped_self"}, status_code=200)
+
         subject = next((h['value'] for h in headers if h['name'] == 'Subject'), None)
         msg_id_header = next((h['value'] for h in headers if h['name'] == 'Message-ID'), None)
 
